@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Compresor Multimedia con FastAPI</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #f4f4f9; }
+        #drop-zone { border: 2px dashed #007BFF; padding: 40px; text-align: center; background: #fff; cursor: pointer; border-radius: 8px; margin-bottom: 20px;}
+        #drop-zone.dragover { background: #e2e6ea; }
+        .preview-container { display: flex; gap: 20px; margin-top: 20px; }
+        .panel { flex: 1; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        img, video, audio { max-width: 100%; margin-top: 10px; }
+        pre { background: #eee; padding: 10px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+        button { background: #007BFF; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; margin-top: 10px; width: 100%; }
+        button:hover { background: #0056b3; }
+        select { padding: 8px; margin-top: 10px; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <h2>Arrastra y suelta tu archivo (Imagen, Audio, Video o Texto)</h2>
+    <div id="drop-zone">Arrastra el archivo aquí o haz clic para seleccionar</div>
+    <input type="file" id="file-input" style="display: none;">
+
+    <div id="workspace" style="display: none;">
+        <div class="preview-container">
+            <!-- Original -->
+            <div class="panel">
+                <h3>Original</h3>
+                <p id="orig-name"></p>
+                <div id="orig-preview"></div>
+                
+                <label>Modo de Compresión:</label>
+                <select id="compression-mode">
+                    <option value="lossless">Sin pérdida (Lossless)</option>
+                    <option value="lossy">Con pérdida (Lossy)</option>
+                </select>
+                <button onclick="compressFile()">Comprimir</button>
+            </div>
+
+            <!-- Resultado -->
+            <div class="panel" id="result-panel" style="display: none;">
+                <h3>Resultado Comprimido</h3>
+                <p id="comp-info"></p>
+                <div id="comp-preview"></div>
+                <br>
+                <a id="download-link" style="text-decoration: none;">
+                    <button style="background: #28a745;">Descargar Comprimido</button>
+                </a>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    let currentFileName = "";
+    let currentFileType = "";
+
+    dropZone.onclick = () => fileInput.click();
+    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+    dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+    dropZone.ondrop = (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    };
+    fileInput.onchange = (e) => { if (e.target.files.length) handleFile(e.target.files[0]); };
+
+    async function handleFile(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        // Detectar tipo general
+        if (file.type.startsWith('image/')) currentFileType = 'image';
+        else if (file.type.startsWith('audio/')) currentFileType = 'audio';
+        else if (file.type.startsWith('video/')) currentFileType = 'video';
+        else currentFileType = 'text';
+
+        const res = await fetch('/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        currentFileName = data.filename;
+
+        // Mostrar panel y previsualizar original
+        document.getElementById('workspace').style.display = 'block';
+        document.getElementById('orig-name').innerText = file.name;
+        renderPreview('orig-preview', data.url, currentFileType, file);
+        document.getElementById('result-panel').style.display = 'none';
+    }
+
+    async function renderPreview(containerId, url, type, fileObject = null) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        
+        if (type === 'image') {
+            container.innerHTML = `<img src="${url}?t=${new Date().getTime()}">`;
+        } else if (type === 'audio') {
+            container.innerHTML = `<audio controls src="${url}?t=${new Date().getTime()}"></audio>`;
+        } else if (type === 'video') {
+            container.innerHTML = `<video controls width="100%" src="${url}?t=${new Date().getTime()}"></video>`;
+        } else if (type === 'text') {
+            // Si pasaron un objeto File local, lo leemos con FileReader; si es una URL del servidor, hacemos fetch
+            if (fileObject) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    container.innerHTML = `<pre>${e.target.result}</pre>`;
+                };
+                reader.readAsText(fileObject);
+            } else {
+                try {
+                    const textRes = await fetch(url);
+                    const textContent = await textRes.text();
+                    container.innerHTML = `<pre>${textContent}</pre>`;
+                } catch (err) {
+                    container.innerHTML = `<pre>Archivo binario comprimido (Zlib). Descárgalo para ver su contenido o descomprimirlo.</pre>`;
+                }
+            }
+        }
+    }
+
+    async function compressFile() {
+        const mode = document.getElementById('compression-mode').value;
+        const formData = new FormData();
+        formData.append("filename", currentFileName);
+        formData.append("file_type", currentFileType);
+        formData.append("mode", mode);
+
+        const res = await fetch('/compress', { method: 'POST', body: formData });
+        if (!res.ok) {
+            alert("Error al comprimir el archivo");
+            return;
+        }
+        const data = await res.json();
+
+        document.getElementById('result-panel').style.display = 'block';
+        const reduction = ((1 - data.compressed_size / data.original_size) * 100).toFixed(1);
+        document.getElementById('comp-info').innerHTML = `Tamaño: ${(data.compressed_size/1024).toFixed(1)} KB (Reducción: ${reduction}%)`;
+        
+        // Renderizar previsualización del resultado comprimido
+        await renderPreview('comp-preview', data.output_url, currentFileType, null);
+        
+        // Asignar ruta de descarga de forma segura
+        document.getElementById('download-link').href = `/download/${data.output_filename}`;
+    }
+</script>
+
+</body>
+</html>
