@@ -1,148 +1,1150 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
+
     <meta charset="UTF-8">
-    <title>Compresor Multimedia con FastAPI</title>
+
+    <title>
+        Compresor Multimedia con FastAPI
+    </title>
+
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #f4f4f9; }
-        #drop-zone { border: 2px dashed #007BFF; padding: 40px; text-align: center; background: #fff; cursor: pointer; border-radius: 8px; margin-bottom: 20px;}
-        #drop-zone.dragover { background: #e2e6ea; }
-        .preview-container { display: flex; gap: 20px; margin-top: 20px; }
-        .panel { flex: 1; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        img, video, audio { max-width: 100%; margin-top: 10px; }
-        pre { background: #eee; padding: 10px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
-        button { background: #007BFF; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; margin-top: 10px; width: 100%; }
-        button:hover { background: #0056b3; }
-        select { padding: 8px; margin-top: 10px; width: 100%; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f4f4f9;
+        }
+
+        #drop-zone {
+            border: 2px dashed #007BFF;
+            padding: 40px;
+            text-align: center;
+            background: #fff;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        #drop-zone.dragover {
+            background: #e2e6ea;
+        }
+
+        .preview-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .panel {
+            flex: 1;
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        img,
+        video,
+        audio {
+            max-width: 100%;
+            margin-top: 10px;
+        }
+
+        pre {
+            background: #eee;
+            padding: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        button {
+            background: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        select {
+            padding: 8px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .secondary-button {
+            background: #28a745;
+        }
+
+        .secondary-button:hover {
+            background: #1e7e34;
+        }
+
+        .info {
+            background: #eef5ff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
     </style>
+
 </head>
+
+
 <body>
 
-    <h2>Arrastra y suelta tu archivo (Imagen, Audio, Video o Texto)</h2>
-    <div id="drop-zone">Arrastra el archivo aquí o haz clic para seleccionar</div>
-    <input type="file" id="file-input" style="display: none;">
+    <h2>
+        Compresor Multimedia
+    </h2>
 
-    <div id="workspace" style="display: none;">
-        <div class="preview-container">
-            <!-- Original -->
-            <div class="panel">
-                <h3>Original</h3>
-                <p id="orig-name"></p>
-                <div id="orig-preview"></div>
-                
-                <label>Modo de Compresión:</label>
-                <select id="compression-mode">
-                    <option value="lossless">Sin pérdida (Lossless)</option>
-                    <option value="lossy">Con pérdida (Lossy)</option>
-                </select>
-                <button onclick="compressFile()">Comprimir</button>
-            </div>
+    <p>
+        Sube una imagen, audio, vídeo, texto o un archivo GZIP.
+    </p>
 
-            <!-- Resultado -->
-            <div class="panel" id="result-panel" style="display: none;">
-                <h3>Resultado Comprimido</h3>
-                <p id="comp-info"></p>
-                <div id="comp-preview"></div>
-                <br>
-                <a id="download-link" style="text-decoration: none;">
-                    <button style="background: #28a745;">Descargar Comprimido</button>
-                </a>
-            </div>
-        </div>
+
+    <div id="drop-zone">
+
+        Arrastra el archivo aquí
+        o haz clic para seleccionar
+
     </div>
 
-<script>
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-input');
-    let currentFileName = "";
-    let currentFileType = "";
 
-    dropZone.onclick = () => fileInput.click();
-    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
-    dropZone.ondragleave = () => dropZone.classList.remove('dragover');
-    dropZone.ondrop = (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-    };
-    fileInput.onchange = (e) => { if (e.target.files.length) handleFile(e.target.files[0]); };
+    <input type="file" id="file-input" style="display: none;">
 
-    async function handleFile(file) {
-        const formData = new FormData();
-        formData.append("file", file);
 
-        // Detectar tipo general
-        if (file.type.startsWith('image/')) currentFileType = 'image';
-        else if (file.type.startsWith('audio/')) currentFileType = 'audio';
-        else if (file.type.startsWith('video/')) currentFileType = 'video';
-        else currentFileType = 'text';
+    <div id="workspace" style="display: none;">
 
-        const res = await fetch('/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        currentFileName = data.filename;
+        <div class="preview-container">
 
-        // Mostrar panel y previsualizar original
-        document.getElementById('workspace').style.display = 'block';
-        document.getElementById('orig-name').innerText = file.name;
-        renderPreview('orig-preview', data.url, currentFileType, file);
-        document.getElementById('result-panel').style.display = 'none';
-    }
 
-    async function renderPreview(containerId, url, type, fileObject = null) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = '';
-        
-        if (type === 'image') {
-            container.innerHTML = `<img src="${url}?t=${new Date().getTime()}">`;
-        } else if (type === 'audio') {
-            container.innerHTML = `<audio controls src="${url}?t=${new Date().getTime()}"></audio>`;
-        } else if (type === 'video') {
-            container.innerHTML = `<video controls width="100%" src="${url}?t=${new Date().getTime()}"></video>`;
-        } else if (type === 'text') {
-            // Si pasaron un objeto File local, lo leemos con FileReader; si es una URL del servidor, hacemos fetch
-            if (fileObject) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    container.innerHTML = `<pre>${e.target.result}</pre>`;
-                };
-                reader.readAsText(fileObject);
-            } else {
-                try {
-                    const textRes = await fetch(url);
-                    const textContent = await textRes.text();
-                    container.innerHTML = `<pre>${textContent}</pre>`;
-                } catch (err) {
-                    container.innerHTML = `<pre>Archivo binario comprimido (Zlib). Descárgalo para ver su contenido o descomprimirlo.</pre>`;
-                }
+            <!-- ORIGINAL -->
+
+            <div class="panel">
+
+                <h3>
+                    Original
+                </h3>
+
+                <p id="orig-name"></p>
+
+                <div id="orig-preview"></div>
+
+
+                <!-- CONTROLES DE COMPRESIÓN -->
+
+                <div id="compression-controls">
+
+                    <label>
+                        Modo de compresión:
+                    </label>
+
+                    <select id="compression-mode">
+
+                        <option value="lossless">
+                            Sin pérdida (Lossless)
+                        </option>
+
+                        <option value="lossy">
+                            Con pérdida (Lossy)
+                        </option>
+
+                    </select>
+
+
+                    <label>
+                        Algoritmo / formato:
+                    </label>
+
+                    <select id="algorithm">
+                    </select>
+
+
+                    <button onclick="compressFile()">
+                        Comprimir
+                    </button>
+
+                </div>
+
+
+                <!-- GZIP -->
+
+                <div id="gzip-controls" style="display: none;">
+
+                    <div class="info">
+
+                        Se ha detectado un archivo GZIP.
+                        La operación disponible es su
+                        descompresión sin pérdida.
+
+                    </div>
+
+
+                    <button onclick="decompressGzip()">
+                        Descomprimir GZIP
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- RESULTADO -->
+
+            <div class="panel" id="result-panel" style="display: none;">
+
+                <h3 id="result-title">
+                    Resultado
+                </h3>
+
+                <p id="comp-info"></p>
+
+                <div id="comp-preview"></div>
+
+
+                <a id="download-link" style="text-decoration: none;" target="_blank">
+
+                    <button class="secondary-button">
+                        Descargar resultado
+                    </button>
+
+                </a>
+
+
+                <a id="report-link" style="
+                        text-decoration: none;
+                        display: none;
+                    " target="_blank">
+
+                    <button>
+                        Descargar informe de métricas
+                    </button>
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+
+        const dropZone =
+            document.getElementById("drop-zone");
+
+
+        const fileInput =
+            document.getElementById("file-input");
+
+
+        const compressionMode =
+            document.getElementById(
+                "compression-mode"
+            );
+
+
+        const algorithmSelect =
+            document.getElementById(
+                "algorithm"
+            );
+
+
+        let currentFileName = "";
+
+        let currentFileType = "";
+
+
+        const algorithmOptions = {
+
+            image: {
+
+                lossless: [
+
+                    {
+                        value: "webp",
+                        label: "WebP sin pérdida"
+                    },
+
+                    {
+                        value: "png",
+                        label: "PNG"
+                    }
+
+                ],
+
+                lossy: [
+
+                    {
+                        value: "webp",
+                        label:
+                            "WebP con pérdida (calidad 50)"
+                    },
+
+                    {
+                        value: "jpeg",
+                        label:
+                            "JPEG (calidad 50)"
+                    }
+
+                ]
+
+            },
+
+
+            audio: {
+
+                lossless: [
+
+                    {
+                        value: "flac",
+                        label: "FLAC"
+                    },
+
+                    {
+                        value: "alac",
+                        label:
+                            "ALAC (M4A)"
+                    }
+
+                ],
+
+                lossy: [
+
+                    {
+                        value: "mp3",
+                        label:
+                            "MP3 64 kb/s"
+                    },
+
+                    {
+                        value: "opus",
+                        label:
+                            "Opus 64 kb/s"
+                    }
+
+                ]
+
+            },
+
+
+            video: {
+
+                lossless: [
+
+                    {
+                        value: "h264",
+                        label:
+                            "H.264 lossless"
+                    }
+
+                ],
+
+                lossy: [
+
+                    {
+                        value: "h264",
+                        label:
+                            "H.264 (CRF 28)"
+                    },
+
+                    {
+                        value: "vp9",
+                        label:
+                            "VP9 (CRF 32)"
+                    }
+
+                ]
+
+            },
+
+
+            text: {
+
+                lossless: [
+
+                    {
+                        value: "zlib",
+                        label: "Zlib"
+                    },
+
+                    {
+                        value: "gzip",
+                        label: "GZIP"
+                    },
+
+                    {
+                        value: "bz2",
+                        label: "BZip2"
+                    },
+
+                    {
+                        value: "lzma",
+                        label: "LZMA/XZ"
+                    }
+
+                ],
+
+                lossy: [
+
+                    {
+                        value: "normalize",
+                        label:
+                            "Normalización de espacios"
+                    }
+
+                ]
+
             }
+
+        };
+
+
+        dropZone.onclick = () => {
+
+            fileInput.click();
+
+        };
+
+
+        dropZone.ondragover = (event) => {
+
+            event.preventDefault();
+
+            dropZone.classList.add(
+                "dragover"
+            );
+
+        };
+
+
+        dropZone.ondragleave = () => {
+
+            dropZone.classList.remove(
+                "dragover"
+            );
+
+        };
+
+
+        dropZone.ondrop = (event) => {
+
+            event.preventDefault();
+
+            dropZone.classList.remove(
+                "dragover"
+            );
+
+
+            if (
+                event.dataTransfer.files.length
+            ) {
+
+                handleFile(
+                    event.dataTransfer.files[0]
+                );
+
+            }
+
+        };
+
+
+        fileInput.onchange = (event) => {
+
+            if (
+                event.target.files.length
+            ) {
+
+                handleFile(
+                    event.target.files[0]
+                );
+
+            }
+
+        };
+
+
+        compressionMode.onchange =
+            updateAlgorithms;
+
+
+        function updateAlgorithms() {
+
+            const compressionControls =
+                document.getElementById(
+                    "compression-controls"
+                );
+
+
+            const gzipControls =
+                document.getElementById(
+                    "gzip-controls"
+                );
+
+
+            if (
+                currentFileType === "gzip"
+            ) {
+
+                compressionControls.style.display =
+                    "none";
+
+                gzipControls.style.display =
+                    "block";
+
+                return;
+
+            }
+
+
+            compressionControls.style.display =
+                "block";
+
+            gzipControls.style.display =
+                "none";
+
+
+            const mode =
+                compressionMode.value;
+
+
+            const options =
+                algorithmOptions[
+                currentFileType
+                ]?.[mode] || [];
+
+
+            algorithmSelect.innerHTML = "";
+
+
+            for (
+                let i = 0;
+                i < options.length;
+                i++
+            ) {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    options[i].value;
+
+
+                option.textContent =
+                    options[i].label;
+
+
+                algorithmSelect.appendChild(
+                    option
+                );
+
+            }
+
         }
+
+
+        async function handleFile(file) {
+
+            const formData =
+                new FormData();
+
+
+            formData.append(
+                "file",
+                file
+            );
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/upload",
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    const error =
+                        await response.json();
+
+                    throw new Error(
+                        error.detail ||
+                        "Error al subir el archivo"
+                    );
+
+                }
+
+
+                const data =
+                    await response.json();
+
+
+                currentFileName =
+                    data.filename;
+
+
+                currentFileType =
+                    data.file_type;
+
+
+                document.getElementById(
+                    "workspace"
+                ).style.display =
+                    "block";
+
+
+                document.getElementById(
+                    "orig-name"
+                ).textContent =
+                    file.name;
+
+
+                document.getElementById(
+                    "result-panel"
+                ).style.display =
+                    "none";
+
+
+                updateAlgorithms();
+
+
+                if (
+                    currentFileType === "gzip"
+                ) {
+
+                    document.getElementById(
+                        "orig-preview"
+                    ).innerHTML =
+                        "<div class='info'>" +
+                        "Archivo GZIP listo para " +
+                        "descomprimir." +
+                        "</div>";
+
+                } else {
+
+                    await renderPreview(
+                        "orig-preview",
+                        data.url,
+                        currentFileType,
+                        file
+                    );
+
+                }
+
+
+            } catch (error) {
+
+                alert(
+                    error.message
+                );
+
+            }
+
+        }
+
+
+        async function renderPreview(
+            containerId,
+            url,
+            type,
+            fileObject = null
+        ) {
+
+            const container =
+                document.getElementById(
+                    containerId
+                );
+
+
+            container.replaceChildren();
+
+
+            if (type === "image") {
+
+                const image =
+                    document.createElement(
+                        "img"
+                    );
+
+
+                image.src =
+                    `${url}?t=${Date.now()}`;
+
+
+                container.appendChild(
+                    image
+                );
+
+            }
+
+
+            else if (type === "audio") {
+
+                const audio =
+                    document.createElement(
+                        "audio"
+                    );
+
+
+                audio.controls = true;
+
+                audio.src =
+                    `${url}?t=${Date.now()}`;
+
+
+                container.appendChild(
+                    audio
+                );
+
+            }
+
+
+            else if (type === "video") {
+
+                const video =
+                    document.createElement(
+                        "video"
+                    );
+
+
+                video.controls = true;
+
+                video.width = 100;
+
+                video.src =
+                    `${url}?t=${Date.now()}`;
+
+
+                container.appendChild(
+                    video
+                );
+
+            }
+
+
+            else if (type === "text") {
+
+                try {
+
+                    let textContent;
+
+
+                    if (fileObject) {
+
+                        textContent =
+                            await fileObject.text();
+
+                    } else {
+
+                        const response =
+                            await fetch(
+                                `${url}?t=${Date.now()}`
+                            );
+
+
+                        textContent =
+                            await response.text();
+
+                    }
+
+
+                    const pre =
+                        document.createElement(
+                            "pre"
+                        );
+
+
+                    pre.textContent =
+                        textContent;
+
+
+                    container.appendChild(
+                        pre
+                    );
+
+
+                } catch (error) {
+
+                    const pre =
+                        document.createElement(
+                            "pre"
+                        );
+
+
+                    pre.textContent =
+                        "No se puede " +
+                        "previsualizar este archivo.";
+
+
+                    container.appendChild(
+                        pre
+                    );
+
+                }
+
+            }
+
+        }
+
+
+        async function compressFile() {
+
+            const mode =
+                compressionMode.value;
+
+
+            const algorithm =
+                algorithmSelect.value;
+
+
+            const formData =
+                new FormData();
+
+
+            formData.append(
+                "filename",
+                currentFileName
+            );
+
+
+            formData.append(
+                "file_type",
+                currentFileType
+            );
+
+
+            formData.append(
+                "mode",
+                mode
+            );
+
+
+            formData.append(
+                "algorithm",
+                algorithm
+            );
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/compress",
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        data.detail ||
+                        "Error al comprimir el archivo"
+                    );
+
+                }
+                
+
+                showCompressionResult(
+                    data
+                );
+
+
+            } catch (error) {
+
+                alert(
+                    error.message
+                );
+
+            }
+
+        }
+
+
+        async function decompressGzip() {
+
+            const formData =
+                new FormData();
+
+
+            formData.append(
+                "filename",
+                currentFileName
+            );
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/decompress-gzip",
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        data.detail ||
+                        "Error al descomprimir GZIP"
+                    );
+
+                }
+
+
+                document.getElementById(
+                    "result-panel"
+                ).style.display =
+                    "block";
+
+
+                document.getElementById(
+                    "comp-info"
+                ).textContent =
+
+                    `GZIP descomprimido: ` +
+
+                    `${(
+                        data.decompressed_size / 1024
+                    ).toFixed(1)} KB. ` +
+
+                    `Archivo generado: ` +
+
+                    `${data.output_filename}`;
+
+
+                await renderPreview(
+                    "comp-preview",
+                    data.output_url,
+                    "text"
+                );
+
+
+                document.getElementById(
+                    "download-link"
+                ).href =
+                    `/download/${data.output_filename}`;
+
+
+                document.getElementById(
+                    "report-link"
+                ).style.display =
+                    "none";
+
+
+            } catch (error) {
+
+                alert(
+                    error.message
+                );
+
+            }
+
+        }
+
+
+        async function showCompressionResult(data) {
+
+    // Mostrar el panel antes de hacer cualquier otra cosa
+    document.getElementById(
+        "result-panel"
+    ).style.display = "block";
+
+
+    // Nombres legibles de los algoritmos
+    const algorithmNames = {
+        webp: "WebP",
+        png: "PNG",
+        jpeg: "JPEG",
+
+        flac: "FLAC",
+        alac: "ALAC",
+        mp3: "MP3",
+        opus: "Opus",
+
+        h264: "H.264",
+        vp9: "VP9",
+
+        zlib: "Zlib",
+        gzip: "GZIP",
+        bz2: "BZip2",
+        lzma: "LZMA/XZ",
+
+        normalize: "Normalización de espacios"
+    };
+
+
+    // Obtener nombre del algoritmo
+    const algorithmName =
+        algorithmNames[data.algorithm] || data.algorithm;
+
+
+    // Si no se pudo comprimir, indicar que se conserva el original
+    if (data.skipped) {
+
+        document.getElementById(
+            "result-title"
+        ).textContent =
+            "Resultado — Archivo original conservado";
+
+    } else {
+
+        const modeName =
+            compressionMode.value === "lossless"
+                ? "sin pérdida"
+                : "con pérdida";
+
+
+        document.getElementById(
+            "result-title"
+        ).textContent =
+            `Resultado — ${algorithmName} ${modeName}`;
     }
 
-    async function compressFile() {
-        const mode = document.getElementById('compression-mode').value;
-        const formData = new FormData();
-        formData.append("filename", currentFileName);
-        formData.append("file_type", currentFileType);
-        formData.append("mode", mode);
 
-        const res = await fetch('/compress', { method: 'POST', body: formData });
-        if (!res.ok) {
-            alert("Error al comprimir el archivo");
-            return;
-        }
-        const data = await res.json();
+    // Información sobre el tamaño
+    let info =
+        `Tamaño: ` +
+        `${(
+            data.compressed_size / 1024
+        ).toFixed(1)} KB. ` +
+        `Reducción: ` +
+        `${data.reduction_percent.toFixed(1)}%. ` +
+        `Ratio: ` +
+        `${
+            data.compression_ratio
+                ? data.compression_ratio.toFixed(2)
+                : "N/D"
+        }.`;
 
-        document.getElementById('result-panel').style.display = 'block';
-        const reduction = ((1 - data.compressed_size / data.original_size) * 100).toFixed(1);
-        document.getElementById('comp-info').innerHTML = `Tamaño: ${(data.compressed_size/1024).toFixed(1)} KB (Reducción: ${reduction}%)`;
-        
-        // Renderizar previsualización del resultado comprimido
-        await renderPreview('comp-preview', data.output_url, currentFileType, null);
-        
-        // Asignar ruta de descarga de forma segura
-        document.getElementById('download-link').href = `/download/${data.output_filename}`;
+
+    // Aviso si se ha descartado la compresión
+    if (data.skipped) {
+
+        info +=
+            " No se aplicó la compresión sin pérdida " +
+            "porque el resultado era mayor o igual " +
+            "que el original; se conserva el original.";
     }
-</script>
+
+
+    // MSE
+    if (
+        data.metrics.mse !== undefined &&
+        data.metrics.mse !== null
+    ) {
+
+        info +=
+            ` MSE: ${data.metrics.mse.toFixed(4)}.`;
+    }
+
+
+    // PSNR
+    if (data.metrics.psnr_infinite) {
+
+        info +=
+            " PSNR: infinito.";
+
+    } else if (
+        data.metrics.psnr_db !== undefined &&
+        data.metrics.psnr_db !== null
+    ) {
+
+        info +=
+            ` PSNR: ${data.metrics.psnr_db.toFixed(2)} dB.`;
+    }
+
+
+    document.getElementById(
+        "comp-info"
+    ).textContent = info;
+
+
+    // Previsualización
+    const preview =
+        document.getElementById(
+            "comp-preview"
+        );
+
+    preview.replaceChildren();
+
+
+    if (data.preview_supported) {
+
+        await renderPreview(
+            "comp-preview",
+            data.output_url,
+            currentFileType
+        );
+
+    } else {
+
+        const message =
+            document.createElement("div");
+
+        message.className = "info";
+
+        message.textContent =
+            "El resultado es un archivo comprimido " +
+            "binario. Descárgalo para utilizarlo.";
+
+        preview.appendChild(message);
+    }
+
+
+    // Descarga del resultado
+    document.getElementById(
+        "download-link"
+    ).href =
+        `/download/${data.output_filename}`;
+
+
+    // Descarga del informe
+    const reportLink =
+        document.getElementById("report-link");
+
+    reportLink.href =
+        data.report_url;
+
+    reportLink.style.display =
+        "block";
+}
+
+    </script>
 
 </body>
+
 </html>
