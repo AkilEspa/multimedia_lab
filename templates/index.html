@@ -10,6 +10,38 @@
     </title>
 
     <style>
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        button.loading {
+            position: relative;
+        }
+
+        button.loading::before {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-right: 8px;
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            vertical-align: -2px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         body {
             font-family: Arial, sans-serif;
             max-width: 900px;
@@ -171,7 +203,7 @@
                     </select>
 
 
-                    <button onclick="compressFile()">
+                    <button id="compress-button" type="button" onclick="compressFile()">
                         Comprimir
                     </button>
 
@@ -809,9 +841,27 @@
 
         async function compressFile() {
 
+            const button =
+                document.getElementById("compress-button");
+
+
+            // Evitar que se envíen varias peticiones
+            if (!button || button.disabled) {
+                return;
+            }
+
+
+            // Deshabilitar inmediatamente
+            button.disabled = true;
+
+            button.classList.add("loading");
+
+            button.textContent =
+                " Comprimiendo...";
+
+
             const mode =
                 compressionMode.value;
-
 
             const algorithm =
                 algorithmSelect.value;
@@ -826,18 +876,15 @@
                 currentFileName
             );
 
-
             formData.append(
                 "file_type",
                 currentFileType
             );
 
-
             formData.append(
                 "mode",
                 mode
             );
-
 
             formData.append(
                 "algorithm",
@@ -869,21 +916,37 @@
                     );
 
                 }
-                
 
-                showCompressionResult(
+
+                await showCompressionResult(
                     data
                 );
 
 
             } catch (error) {
 
+                console.error(
+                    "Error al comprimir:",
+                    error
+                );
+
                 alert(
                     error.message
                 );
 
-            }
 
+            } finally {
+
+                // Volver a activar el botón
+                button.disabled = false;
+
+                button.classList.remove(
+                    "loading"
+                );
+
+                button.textContent =
+                    "Comprimir";
+            }
         }
 
 
@@ -978,170 +1041,169 @@
 
         async function showCompressionResult(data) {
 
-    // Mostrar el panel antes de hacer cualquier otra cosa
-    document.getElementById(
-        "result-panel"
-    ).style.display = "block";
+            // Mostrar el panel antes de hacer cualquier otra cosa
+            document.getElementById(
+                "result-panel"
+            ).style.display = "block";
 
 
-    // Nombres legibles de los algoritmos
-    const algorithmNames = {
-        webp: "WebP",
-        png: "PNG",
-        jpeg: "JPEG",
+            // Nombres legibles de los algoritmos
+            const algorithmNames = {
+                webp: "WebP",
+                png: "PNG",
+                jpeg: "JPEG",
 
-        flac: "FLAC",
-        alac: "ALAC",
-        mp3: "MP3",
-        opus: "Opus",
+                flac: "FLAC",
+                alac: "ALAC",
+                mp3: "MP3",
+                opus: "Opus",
 
-        h264: "H.264",
-        vp9: "VP9",
+                h264: "H.264",
+                vp9: "VP9",
 
-        zlib: "Zlib",
-        gzip: "GZIP",
-        bz2: "BZip2",
-        lzma: "LZMA/XZ",
+                zlib: "Zlib",
+                gzip: "GZIP",
+                bz2: "BZip2",
+                lzma: "LZMA/XZ",
 
-        normalize: "Normalización de espacios"
-    };
-
-
-    // Obtener nombre del algoritmo
-    const algorithmName =
-        algorithmNames[data.algorithm] || data.algorithm;
+                normalize: "Normalización de espacios"
+            };
 
 
-    // Si no se pudo comprimir, indicar que se conserva el original
-    if (data.skipped) {
-
-        document.getElementById(
-            "result-title"
-        ).textContent =
-            "Resultado — Archivo original conservado";
-
-    } else {
-
-        const modeName =
-            compressionMode.value === "lossless"
-                ? "sin pérdida"
-                : "con pérdida";
+            // Obtener nombre del algoritmo
+            const algorithmName =
+                algorithmNames[data.algorithm] || data.algorithm;
 
 
-        document.getElementById(
-            "result-title"
-        ).textContent =
-            `Resultado — ${algorithmName} ${modeName}`;
-    }
+            // Si no se pudo comprimir, indicar que se conserva el original
+            if (data.skipped) {
+
+                document.getElementById(
+                    "result-title"
+                ).textContent =
+                    "Resultado — Archivo original conservado";
+
+            } else {
+
+                const modeName =
+                    compressionMode.value === "lossless"
+                        ? "sin pérdida"
+                        : "con pérdida";
 
 
-    // Información sobre el tamaño
-    let info =
-        `Tamaño: ` +
-        `${(
-            data.compressed_size / 1024
-        ).toFixed(1)} KB. ` +
-        `Reducción: ` +
-        `${data.reduction_percent.toFixed(1)}%. ` +
-        `Ratio: ` +
-        `${
-            data.compression_ratio
-                ? data.compression_ratio.toFixed(2)
-                : "N/D"
-        }.`;
+                document.getElementById(
+                    "result-title"
+                ).textContent =
+                    `Resultado — ${algorithmName} ${modeName}`;
+            }
 
 
-    // Aviso si se ha descartado la compresión
-    if (data.skipped) {
-
-        info +=
-            " No se aplicó la compresión sin pérdida " +
-            "porque el resultado era mayor o igual " +
-            "que el original; se conserva el original.";
-    }
-
-
-    // MSE
-    if (
-        data.metrics.mse !== undefined &&
-        data.metrics.mse !== null
-    ) {
-
-        info +=
-            ` MSE: ${data.metrics.mse.toFixed(4)}.`;
-    }
+            // Información sobre el tamaño
+            let info =
+                `Tamaño: ` +
+                `${(
+                    data.compressed_size / 1024
+                ).toFixed(1)} KB. ` +
+                `Reducción: ` +
+                `${data.reduction_percent.toFixed(1)}%. ` +
+                `Ratio: ` +
+                `${data.compression_ratio
+                    ? data.compression_ratio.toFixed(2)
+                    : "N/D"
+                }.`;
 
 
-    // PSNR
-    if (data.metrics.psnr_infinite) {
+            // Aviso si se ha descartado la compresión
+            if (data.skipped) {
 
-        info +=
-            " PSNR: infinito.";
-
-    } else if (
-        data.metrics.psnr_db !== undefined &&
-        data.metrics.psnr_db !== null
-    ) {
-
-        info +=
-            ` PSNR: ${data.metrics.psnr_db.toFixed(2)} dB.`;
-    }
+                info +=
+                    " No se aplicó la compresión sin pérdida " +
+                    "porque el resultado era mayor o igual " +
+                    "que el original; se conserva el original.";
+            }
 
 
-    document.getElementById(
-        "comp-info"
-    ).textContent = info;
+            // MSE
+            if (
+                data.metrics.mse !== undefined &&
+                data.metrics.mse !== null
+            ) {
+
+                info +=
+                    ` MSE: ${data.metrics.mse.toFixed(4)}.`;
+            }
 
 
-    // Previsualización
-    const preview =
-        document.getElementById(
-            "comp-preview"
-        );
+            // PSNR
+            if (data.metrics.psnr_infinite) {
 
-    preview.replaceChildren();
+                info +=
+                    " PSNR: infinito.";
 
+            } else if (
+                data.metrics.psnr_db !== undefined &&
+                data.metrics.psnr_db !== null
+            ) {
 
-    if (data.preview_supported) {
-
-        await renderPreview(
-            "comp-preview",
-            data.output_url,
-            currentFileType
-        );
-
-    } else {
-
-        const message =
-            document.createElement("div");
-
-        message.className = "info";
-
-        message.textContent =
-            "El resultado es un archivo comprimido " +
-            "binario. Descárgalo para utilizarlo.";
-
-        preview.appendChild(message);
-    }
+                info +=
+                    ` PSNR: ${data.metrics.psnr_db.toFixed(2)} dB.`;
+            }
 
 
-    // Descarga del resultado
-    document.getElementById(
-        "download-link"
-    ).href =
-        `/download/${data.output_filename}`;
+            document.getElementById(
+                "comp-info"
+            ).textContent = info;
 
 
-    // Descarga del informe
-    const reportLink =
-        document.getElementById("report-link");
+            // Previsualización
+            const preview =
+                document.getElementById(
+                    "comp-preview"
+                );
 
-    reportLink.href =
-        data.report_url;
+            preview.replaceChildren();
 
-    reportLink.style.display =
-        "block";
-}
+
+            if (data.preview_supported) {
+
+                await renderPreview(
+                    "comp-preview",
+                    data.output_url,
+                    currentFileType
+                );
+
+            } else {
+
+                const message =
+                    document.createElement("div");
+
+                message.className = "info";
+
+                message.textContent =
+                    "El resultado es un archivo comprimido " +
+                    "binario. Descárgalo para utilizarlo.";
+
+                preview.appendChild(message);
+            }
+
+
+            // Descarga del resultado
+            document.getElementById(
+                "download-link"
+            ).href =
+                `/download/${data.output_filename}`;
+
+
+            // Descarga del informe
+            const reportLink =
+                document.getElementById("report-link");
+
+            reportLink.href =
+                data.report_url;
+
+            reportLink.style.display =
+                "block";
+        }
 
     </script>
 
