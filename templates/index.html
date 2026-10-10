@@ -1099,27 +1099,53 @@
 
 
             // Información sobre el tamaño
-            let info =
-                `Tamaño: ` +
-                `${(
-                    data.compressed_size / 1024
-                ).toFixed(1)} KB. ` +
-                `Reducción: ` +
-                `${data.reduction_percent.toFixed(1)}%. ` +
-                `Ratio: ` +
-                `${data.compression_ratio
-                    ? data.compression_ratio.toFixed(2)
-                    : "N/D"
-                }.`;
+            let info;
 
-
-            // Aviso si se ha descartado la compresión
             if (data.skipped) {
 
-                info +=
-                    " No se aplicó la compresión sin pérdida " +
-                    "porque el resultado era mayor o igual " +
-                    "que el original; se conserva el original.";
+                const attemptedSize =
+                    data.attempted_size ?? data.compressed_size;
+
+                const increasePercent =
+                    data.original_size > 0
+                        ? (
+                            (attemptedSize / data.original_size) - 1
+                        ) * 100
+                        : 0;
+
+                info =
+                    "No mejora el tamaño. Se conserva el original (" +
+                    (data.original_size / 1024).toFixed(1) +
+                    " KB). La conversión habría ocupado " +
+                    (attemptedSize / 1024).toFixed(1) +
+                    " KB";
+
+                if (increasePercent > 0) {
+
+                    info +=
+                        " (" + increasePercent.toFixed(1) +
+                        "% más grande)";
+
+                } else {
+
+                    info +=
+                        " (no reduce el tamaño)";
+
+                }
+
+                info += ".";
+
+            } else {
+
+                info =
+                    `Tamaño: ${(data.compressed_size / 1024).toFixed(1)} KB. ` +
+                    `Reducción: ${data.reduction_percent.toFixed(1)}%. ` +
+                    `Ratio: ${
+                        data.compression_ratio
+                            ? data.compression_ratio.toFixed(2)
+                            : "N/D"
+                    }.`;
+
             }
 
 

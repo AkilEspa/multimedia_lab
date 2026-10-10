@@ -997,32 +997,26 @@ async def compress_file(
             )
 
 
-        original_size = os.path.getsize(
-            input_path
-        )
-
-        generated_size = os.path.getsize(
-            output_path
-        )
+        original_size = os.path.getsize(input_path)
+        generated_size = os.path.getsize(output_path)
 
         skipped = False
         effective_algorithm = algorithm
 
-        if (
-            mode == "lossless"
-            and generated_size >= original_size
-        ):
+        # Si el resultado no reduce el tamaño, se descarta
+        # independientemente de si el modo es lossless o lossy.
+        if generated_size >= original_size:
 
+            # Eliminar el resultado que ocupa más o lo mismo
             os.remove(output_path)
 
+            # Conservar el archivo original
             output_filename = filename
             output_path = input_path
 
             skipped = True
 
-            effective_algorithm = (
-                "original_sin_compresion"
-            )
+            effective_algorithm = "original_conservado"
 
 
         metrics = build_metrics(
@@ -1068,6 +1062,8 @@ async def compress_file(
 
             "compressed_size":
                 metrics["compressed_size"],
+
+            "attempted_size": generated_size,
 
             "reduction_percent":
                 metrics["reduction_percent"],
