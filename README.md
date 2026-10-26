@@ -1,6 +1,6 @@
 # Compresor Multimedia y de Texto
 
-Aplicación web desarrollada con **FastAPI** para comprimir y descomprimir archivos multimedia desde una interfaz web.
+Aplicación web desarrollada con **FastAPI** para comprimir y descomprimir archivos de texto y multimedia desde una interfaz web.
 
 El proyecto permite ejecutar la aplicación de dos maneras:
 
@@ -136,4 +136,137 @@ Esta opción ejecuta la aplicación directamente en Windows utilizando Python y 
 - `pip`, incluido normalmente con Python.
 - FFmpeg disponible mediante `imageio-ffmpeg` o instalado en el sistema, según la configuración utilizada por la aplicación.
 
-Puedes descargar
+Puedes descargar Python desde la [página oficial](https://www.python.org/downloads/).
+
+Durante la instalación en Windows, activa la opción **Add Python to PATH**.
+
+Comprueba la instalación desde PowerShell:
+
+```powershell
+python --version
+pip --version
+```
+
+Si el comando `python` no funciona, prueba:
+
+```powershell
+py --version
+```
+
+### 1. Abrir la carpeta del proyecto
+
+Abre PowerShell en el directorio donde se encuentra `main.py`.
+
+Por ejemplo:
+
+```powershell
+cd C:\ruta\al\proyecto
+```
+
+Sustituye la ruta por la ubicación real del proyecto.
+
+### 2. Crear un entorno virtual
+
+Ejecuta:
+
+```powershell
+python -m venv .venv
+```
+
+### 3. Activar el entorno virtual
+
+En PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Si PowerShell impide la activación por la política de ejecución, puedes activar el entorno desde CMD con:
+
+```cmd
+.venv\Scripts\activate.bat
+```
+
+### 4. Instalar las dependencias
+
+Instala los paquetes definidos en `requirements.txt`:
+
+```powershell
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+El archivo `requirements.txt` debe incluir las dependencias utilizadas por el proyecto, como:
+
+```text
+fastapi
+uvicorn[standard]
+python-multipart
+jinja2
+Pillow
+ffmpeg-python
+imageio-ffmpeg
+```
+
+Si el archivo ya contiene otras dependencias necesarias, consérvalas.
+
+### 5. Ejecutar la aplicación
+
+Inicia el servidor con:
+
+```powershell
+uvicorn main:app --reload
+```
+
+La aplicación estará disponible en:
+
+- **Aplicación web:** http://localhost:8000
+- **Documentación de la API:** http://localhost:8000/docs
+
+El parámetro `--reload` reinicia el servidor cuando detecta cambios en el código. Es útil durante el desarrollo.
+
+Para detener el servidor, pulsa `Ctrl + C` en la terminal.
+
+### 6. Desactivar el entorno virtual
+
+Cuando termines, puedes ejecutar:
+
+```powershell
+deactivate
+```
+
+---
+
+## Solución de problemas
+
+| Problema | Solución |
+|---|---|
+| `docker` no se reconoce como comando | Comprueba que Docker Desktop está instalado y en ejecución; abre una terminal nueva. |
+| No se puede conectar con Docker | Inicia Docker Desktop y espera a que el motor esté listo. |
+| `uvicorn` no se reconoce | Activa el entorno virtual y ejecuta `python -m pip install -r requirements.txt`. |
+| Error al instalar dependencias | Comprueba la versión de Python y revisa el mensaje de error de `pip`. |
+| Error relacionado con FFmpeg | Comprueba que `imageio-ffmpeg` esté instalado y que el código obtenga correctamente el ejecutable de FFmpeg. |
+| El puerto 8000 ya está ocupado | Utiliza otro puerto, por ejemplo `uvicorn main:app --reload --port 8001`, o cambia el mapeo de puertos de Docker. |
+| No aparecen los archivos generados | Comprueba la ruta de almacenamiento y, si utilizas Docker, el montaje del volumen. |
+
+## ¿Qué opción elegir?
+
+| Característica | Con Docker | Sin Docker |
+|---|---|---|
+| Instalación de dependencias | Dentro de la imagen | En el entorno virtual |
+| Configuración inicial | Requiere Docker Desktop | Requiere Python |
+| Aislamiento del entorno | Sí | Parcial, mediante entorno virtual |
+| Desarrollo y depuración | Posible | Directo y sencillo |
+| Reproducibilidad entre equipos | Generalmente mayor | Depende del entorno local |
+
+**Recomendación:** utiliza Docker para ejecutar el proyecto en un entorno reproducible y facilitar su despliegue. Utiliza la ejecución sin Docker si vas a modificar y depurar el código con frecuencia.
+
+## Seguridad
+
+Antes de publicar la aplicación en Internet:
+
+- Limita el tamaño y los tipos de archivo que se pueden subir.
+- Valida los nombres de archivo y las rutas de almacenamiento.
+- Configura una política de limpieza para los archivos temporales.
+- Evita exponer archivos subidos o resultados a usuarios no autorizados.
+- No utilices la configuración de desarrollo como configuración de producción sin revisar sus medidas de seguridad.
